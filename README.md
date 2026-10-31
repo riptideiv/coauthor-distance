@@ -1,18 +1,22 @@
-# Six Degrees of Academia
+# Coauthor Distance
 
-"Six degrees of separation" for academics. Pick two (or more) researchers and the
-app finds how they're connected (through **co-authorship**, **citations**, or
-**shared institutions**) using the free [OpenAlex](https://openalex.org) scholarly
-graph, then draws the network interactively.
+**Research is a small world.** Explore the publications that connect your professor,
+your favorite scientist, and the authors you read. Start with two researchers (or a
+paper), then follow their network using [OpenAlex](https://openalex.org) data.
 
 [Open the tool](https://academic-degree-of-separation.onrender.com/) ·
-[How to find research collaborators](https://academic-degree-of-separation.onrender.com/guide/)
+[How it works](https://academic-degree-of-separation.onrender.com/guide/) ·
+[Reddit readiness and post draft](docs/reddit-readiness.md)
 
-**Start with authors you already read.** Add their profiles, choose your university
-in Institution Explorer, and investigate local researchers connected through
-coauthorship. You can also trace connections before a seminar or use the graph to
-teach how coauthor, citation, and institution networks differ. Suggestions are leads
-to investigate, not proof of a personal relationship or an exhaustive directory.
+Coauthorship is the default. Citations and shared institutions are optional ways to
+explore a broader academic network. Choose your university under **Explore your
+campus** to investigate local researchers connected to the authors you read. Results
+are discovery leads; they do not establish personal relationships or a complete
+ranking of potential collaborators.
+
+Use **Share map** to copy a link that rebuilds your starting points and search
+options against live data. To keep the current result, use **Save image** or
+**Export report**. No sign-up is required.
 
 - **Backend:** FastAPI. Bidirectional BFS over OpenAlex, streamed to the browser via
   Server-Sent Events (SSE).
@@ -22,6 +26,10 @@ to investigate, not proof of a personal relationship or an exhaustive directory.
 ## Quick start
 
 ```bash
+# Clone the repository
+git clone https://github.com/riptideiv/coauthor-distance.git
+cd coauthor-distance
+
 # 1. Create a virtualenv and install dependencies
 python3 -m venv .venv
 source .venv/bin/activate
@@ -36,8 +44,8 @@ open http://127.0.0.1:8000        # macOS  (or just visit the URL)
 
 Type a researcher's name in the sidebar, choose a result, then add a second one (or
 use the example on the empty canvas). The sidebar shows the **degrees of separation**
-and the full shortest path, while the graph renders their surrounding research network.
-Optionally choose a home institution in **Institution Explorer** to discover local
+and the connecting steps, while the graph renders their surrounding research network.
+Optionally choose a home institution in **Explore your campus** to discover local
 researchers whose coauthor networks are closest to the researchers in the main graph.
 
 OpenAlex now requires an API key for normal API use. Keys are free; create an account
@@ -92,12 +100,9 @@ under a new public hostname, update the URLs together in `frontend/index.html`,
 `frontend/social-preview.svg` is the editable source for the 1200 × 630 PNG used
 by social previews; regenerate the PNG when changing the artwork.
 
-The separate introduction at `www.xingruic.net/tools/researchers` embeds this app
-and is outside this repository. It already has its own canonical and social
-metadata. Its owner should add visible use-case copy and a normal link to the
-guide outside the iframe; embedded app metadata does not replace the outer page's
-metadata. The two hosts currently retain their own canonicals. If consolidating
-the landing page onto one domain later, align content and redirects deliberately.
+The legacy link at `www.xingruic.net/tools/researchers` redirects to the Render
+deployment. That redirect is configured outside this repository. When connecting
+a new public domain, update that redirect and the GitHub repository homepage too.
 
 Publishing a sitemap does not itself submit it to Search
 Console or guarantee indexing. The guide is untracked; existing analytics count
@@ -177,7 +182,7 @@ tests/                pytest suite
    streamed, so the graph grows during the search. Each connected pair emits a
    `path` event carrying the hop count and the ordered steps as soon as the search
    finishes.
-3. **Institution Explorer** (`/api/institution-suggestions`) treats author origins as
+3. **Explore your campus** (`/api/institution-suggestions`) treats author origins as
    a research-interest profile. It ranks affiliation candidates at the selected home
    institution using coauthorship paths only. The UI distinguishes reviewed current
    affiliations from OpenAlex last-known affiliations; the latter are not claimed as
