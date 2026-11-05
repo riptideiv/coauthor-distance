@@ -88,6 +88,9 @@ shell or deployment platform. Do not commit `.env.local`.
 | `CACHE_ADMIN_TOKEN` | Optional secret for server cache administration. `DELETE /api/cache` requires this token as a Bearer credential; without it, cache deletion is disabled. Normal searches need no admin token. |
 | `ANALYTICS_ENABLED` | First-party usage collection, enabled by default. Set `false` to stop collecting events. |
 | `ANALYTICS_ADMIN_TOKEN` | Separate secret for the private usage dashboard at `/analytics.html`. Without it, report access is disabled; background collection can still run. |
+| `RATE_LIMIT_EXPAND_PER_MIN` | Per-IP limit for `/api/graph/expand` (default `30`). Set `0` to disable. |
+| `RATE_LIMIT_PATH_PER_MIN` | Per-IP limit for `/api/path` (default `30`). Set `0` to disable. |
+| `RATE_LIMIT_INSTITUTION_PER_MIN` | Per-IP limit for `/api/institution-suggestions` (default `20`). Set `0` to disable. |
 
 Example `.env.local`:
 
@@ -127,6 +130,13 @@ activity in the interactive app, not guide visits or guide-to-app conversions.
 ## Running the tests
 
 ```bash
+make test     # pytest + JS behavior tests
+make lint     # ruff (also runs in CI)
+```
+
+Or directly:
+
+```bash
 pytest -q
 node --test tests/js/*.test.cjs
 ```
@@ -136,8 +146,9 @@ the app), so it's fast and offline.
 Pytest wraps some legacy JavaScript regression tests when Node.js is available.
 Run the Node command above for the complete browser-state, discovery, saved-list,
 request-ordering, and export suite.
-GitHub Actions runs the full suite on Python 3.12 and 3.13, plus the JavaScript
-behavior and syntax checks with Node.js 24.
+GitHub Actions runs lint plus the full suite on Python 3.12 and 3.13, and the
+JavaScript behavior and syntax checks with Node.js 24.
+Dependencies in `requirements.txt` are pinned for reproducible installs.
 
 For a live search comparison against a previous commit:
 
@@ -171,6 +182,7 @@ backend/
   neighbor_store.py   Neighbor-ring cache: bounded LRU + durable store (JSON/Supabase)
   usage_analytics.py  Background usage storage and aggregate reports (SQLite/Postgres)
   analytics_routes.py  Minimal event collection and protected report API
+  rate_limit.py       Per-IP sliding-window limits for expand/path/institution routes
   bigquery_backend.py Optional BigQuery backend (same interface)
   models.py           Pydantic models
 frontend/
