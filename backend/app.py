@@ -7,6 +7,7 @@ import re
 import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlsplit
 
 import httpx
@@ -18,7 +19,7 @@ load_dotenv(Path(__file__).parent.parent / ".env.local", override=False)
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.affiliation_overrides import (
@@ -29,6 +30,7 @@ from backend.affiliation_overrides import (
 )
 from backend.analytics_routes import create_analytics_router
 from backend.bfs import find_path
+from backend.discovery import discover
 from backend.graph_backend import (
     ALL_EDGE_TYPES,
     ALL_WORK_EDGE_TYPES,
@@ -1269,6 +1271,47 @@ async def search_institutions(
     }
 
 
+@app.get("/api/topics")
+async def search_topics(q: str = Query(..., min_length=2, max_length=300)):
+    results, total = await _client.search_topics(q)
+    return {"results": results, "total": total}
+
+
+@app.get("/api/discover")
+async def discover_researchers(
+    institution_id: str,
+    reference_ids: list[str] = Query(...),
+):
+    institution_id = _validate_id(institution_id, "I")
+    references = _validate_ids(reference_ids, 8, "AWT")
+    if not references:
+        raise HTTPException(status_code=422, detail="Choose at least one reference.")
+    try:
+        async with asyncio.timeout(25):
+            return await discover(_client, institution_id, references)
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail="Discovery timed out. Try fewer references or retry.") from None
+
+
+@app.get("/api/connections/check")
+async def check_connection(from_id: str, to_id: str):
+    """Optional, evidence-verified two-hop lookup; independent of discovery rank."""
+    from_id, to_id = _validate_id(from_id, "A"), _validate_id(to_id, "A")
+    if from_id == to_id:
+        raise HTTPException(status_code=422, detail="Choose two different researchers.")
+    try:
+        async with asyncio.timeout(25):
+            candidate = apply_reviewed_identity(await _client.get_author(to_id))
+            paths, errors, complete = await _short_coauthor_paths([candidate], [from_id], 2)
+            path = paths.get(to_id)
+            if path:
+                return {"status": "verified", "max_hops": 2, **path}
+            return {"status": "not_found" if complete and not errors else "incomplete",
+                    "max_hops": 2, "steps": []}
+    except TimeoutError:
+        return {"status": "incomplete", "max_hops": 2, "steps": []}
+
+
 @app.get("/api/institution-suggestions")
 async def institution_rank(
     request: Request,
@@ -1973,12 +2016,41 @@ async def _institution_rank(
     return response
 
 
+@app.get("/api/researchers/{author_id}")
+async def researcher_profile(author_id: str):
+    """One identity record shared by discovery, graph, and saved profiles."""
+    author_id = _validate_id(author_id, "A")
+    author = apply_reviewed_identity(await _client.get_author(author_id))
+    override = author.get("_affiliation_override")
+    institutions = [item for item in (author.get("last_known_institutions") or [])
+                    if isinstance(item, dict) and item.get("id")]
+    institution_id = override.institution_id if override else (
+        _short_id(institutions[0]["id"]) if institutions else None
+    )
+    return {
+        "id": author_id,
+        "display_name": author.get("display_name") or author_id,
+        "institution": _get_inst(author),
+        "affiliation_evidence": _affiliation_evidence(author, institution_id) if institution_id else None,
+        "affiliations": [_affiliation_evidence(author, inst_id) for inst_id in (
+            [override.institution_id] if override else list(dict.fromkeys(_short_id(inst["id"]) for inst in institutions))[:8]
+        )],
+        "orcid": author.get("orcid"),
+        "topics": [
+            {"id": _short_id(topic.get("id") or ""),
+             "display_name": topic.get("display_name") or topic.get("name", "")}
+            for topic in (author.get("topics") or [])[:8] if isinstance(topic, dict)
+        ],
+        "openalex_url": f"https://openalex.org/{author_id}",
+    }
+
+
 @app.get("/api/authors/{author_id}/works", response_model=list[AuthorWork])
-async def get_author_top_works(author_id: str, limit: int = Query(default=10, ge=1, le=25)):
+async def get_author_top_works(author_id: str, limit: int = Query(default=10, ge=1, le=25), sort: Literal["cited", "recent"] = "cited"):
     author_id = _validate_id(author_id, "A")
     verified_work_ids = get_verified_work_ids(author_id)
     if verified_work_ids is None:
-        works = await _client.get_author_works(author_id, limit=limit)
+        works = await _client.get_author_works(author_id, limit=limit, **({"sort": "recent"} if sort == "recent" else {}))
     else:
         works = [
             work
@@ -1999,8 +2071,8 @@ async def get_author_top_works(author_id: str, limit: int = Query(default=10, ge
         ]
         works.sort(
             key=lambda work: (
-                -int(work.get("cited_by_count", 0)),
-                -(work.get("publication_year") or 0),
+                -(work.get("publication_year") or 0) if sort == "recent" else -int(work.get("cited_by_count", 0)),
+                -int(work.get("cited_by_count", 0)) if sort == "recent" else -(work.get("publication_year") or 0),
                 _short_id(work.get("id", "")),
             )
         )
@@ -2269,5 +2341,26 @@ async def graph_expand(
 
 
 _frontend_dir = Path(__file__).parent.parent / "frontend"
+
+
+@app.get("/", include_in_schema=False)
+async def landing_page():
+    return FileResponse(_frontend_dir / "landing.html")
+
+
+@app.get("/discover", include_in_schema=False)
+@app.get("/connections", include_in_schema=False)
+@app.get("/saved", include_in_schema=False)
+async def application_page():
+    return FileResponse(_frontend_dir / "index.html")
+
+
+@app.get("/researchers/{author_id}", include_in_schema=False)
+async def researcher_page(author_id: str):
+    if not re.fullmatch(r"A\d{1,20}", author_id):
+        raise HTTPException(status_code=404, detail="Researcher page not found")
+    return FileResponse(_frontend_dir / "index.html")
+
+
 if _frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
