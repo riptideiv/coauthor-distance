@@ -39,7 +39,8 @@
     $('discovery-references').replaceChildren();
     for (const item of intent.list()) {
       const chip = document.createElement('li');
-      chip.innerHTML = `<span>${esc(item.display_name)}</span><button type="button" aria-label="Remove ${esc(item.display_name)}">×</button>`;
+      const category = { T: 'Research topic', W: 'Paper', A: 'Researcher' }[item.id[0]];
+      chip.innerHTML = `<span class="reference-label"><span>${esc(item.display_name)}</span><small class="reference-category">${category}</small></span><button type="button" aria-label="Remove ${esc(item.display_name)}">×</button>`;
       chip.querySelector('button').onclick = () => { intent.remove(item.id); rememberReferences(); renderReferences(); notice('References changed. Search to update results.'); window.dispatchEvent(new Event('discovery-input')); };
       $('discovery-references').append(chip);
     }

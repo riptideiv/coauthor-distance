@@ -23,7 +23,7 @@ class Assets(HTMLParser):
             self.urls.append(value)
 
 
-@pytest.mark.parametrize('path', ['/discover', '/connections', '/saved', '/researchers/A123'])
+@pytest.mark.parametrize('path', ['/', '/discover', '/connections', '/saved', '/researchers/A123'])
 async def test_application_routes_have_working_absolute_assets(path):
     async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
         response = await client.get(path)

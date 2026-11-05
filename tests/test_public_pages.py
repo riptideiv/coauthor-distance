@@ -49,7 +49,7 @@ async def test_sitemap_targets_are_crawlable_canonical_pages_with_working_links(
         urls = [node.text for node in ElementTree.fromstring(response.text).findall(
             "{*}url/{*}loc"
         )]
-        assert set(urls) == {ORIGIN + "/", ORIGIN + "/guide/"}
+        assert set(urls) == {ORIGIN + "/", ORIGIN + "/discover", ORIGIN + "/guide/"}
         assert len(urls) == len(set(urls))
         for url in urls:
             response = await client.get(url)

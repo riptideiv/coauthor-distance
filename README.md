@@ -5,7 +5,7 @@ Start with your university and a research topic, paper, or author. Inspect suppo
 publications, explore coauthor connections, and keep a private shortlist with notes.
 Powered by [OpenAlex](https://openalex.org); no sign-up is required.
 
-[Open the tool](https://academic-degree-of-separation.onrender.com/) ·
+[Open the tool](https://academic-degree-of-separation.onrender.com/discover) ·
 [How it works](https://academic-degree-of-separation.onrender.com/guide/) ·
 [Expansion design](docs/app-expansion-design.md)
 
@@ -101,16 +101,18 @@ GOOGLE_CLOUD_PROJECT=your-gcp-project
 
 ## Search visibility and outreach
 
-The app and the static `/guide/` page have distinct titles, descriptions, canonical
-URLs, and social previews. The guide is readable without JavaScript and linked
-from the app. `/robots.txt` advertises `/sitemap.xml`, which lists only those two
-public pages. The private analytics page remains `noindex` and crawlable so search
+The landing page at `/`, the app at `/discover`, and the static `/guide/` page
+have distinct titles, descriptions, and canonical URLs. The landing page and guide
+are readable without JavaScript. Legacy `/#map=` links forward to `/connections`
+with their shared graph intact. `/robots.txt` advertises `/sitemap.xml`, which lists
+these three public pages. The private analytics page remains `noindex` and crawlable so search
 engines can read that directive. API and operational routes are excluded from
 crawling; robots rules are not access controls.
 
 Canonical and social URLs target the current Render deployment. When deploying
 under a new public hostname, update the URLs together in `frontend/index.html`,
-`frontend/guide/index.html`, `frontend/robots.txt`, and `frontend/sitemap.xml`.
+`frontend/landing.html`, `frontend/guide/index.html`, `frontend/robots.txt`, and
+`frontend/sitemap.xml`.
 `frontend/social-preview.svg` is the editable source for the 1200 × 630 PNG used
 by social previews; regenerate the PNG when changing the artwork.
 

@@ -2332,6 +2332,11 @@ async def graph_expand(
 _frontend_dir = Path(__file__).parent.parent / "frontend"
 
 
+@app.get("/", include_in_schema=False)
+async def landing_page():
+    return FileResponse(_frontend_dir / "landing.html")
+
+
 @app.get("/discover", include_in_schema=False)
 @app.get("/connections", include_in_schema=False)
 @app.get("/saved", include_in_schema=False)

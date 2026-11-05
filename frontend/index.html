@@ -4,34 +4,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coauthor Distance · How connected is your research world?</title>
+  <title>Coauthor Distance · Discover connections at your university</title>
   <meta name="description" content="Find researchers at your university through topics and papers, explore coauthor connections, and save a private research shortlist.">
-  <link rel="canonical" href="https://academic-degree-of-separation.onrender.com/">
-  <meta name="theme-color" content="#243d36">
+  <link rel="canonical" href="https://academic-degree-of-separation.onrender.com/discover">
+  <meta name="theme-color" content="#124b3e">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Coauthor Distance">
-  <meta property="og:title" content="Coauthor Distance — Find your research people">
+  <meta property="og:title" content="Coauthor Distance — Discover connections at your university">
   <meta property="og:description" content="Discover researchers through topics and papers. Explore their connections and keep a local shortlist with notes. Powered by OpenAlex.">
-  <meta property="og:url" content="https://academic-degree-of-separation.onrender.com/">
+  <meta property="og:url" content="https://academic-degree-of-separation.onrender.com/discover">
   <meta property="og:image" content="https://academic-degree-of-separation.onrender.com/social-preview.png?v=20261029-expand-3e">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Coauthor Distance: find the people behind the papers. Illustration of a connected research network.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Coauthor Distance — Find your research people">
+  <meta name="twitter:title" content="Coauthor Distance — Discover connections at your university">
   <meta name="twitter:description" content="Discover researchers through topics and papers, explore connections, and save useful research.">
   <meta name="twitter:image" content="https://academic-degree-of-separation.onrender.com/social-preview.png?v=20261029-expand-3e">
   <meta name="twitter:image:alt" content="Coauthor Distance: find the people behind the papers. Illustration of a connected research network.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css?v=20261029-expand-3e">
   <link rel="stylesheet" href="/workspace.css?v=20261029-expand-3e">
-  <link rel="stylesheet" href="/shell.css?v=20261029-expand-3e">
+  <link rel="stylesheet" href="/shell.css?v=20261101-frame-1">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Coauthor Distance",
-      "url": "https://academic-degree-of-separation.onrender.com/",
+      "url": "https://academic-degree-of-separation.onrender.com/discover",
       "description": "Discover researchers at a university from topics and papers, explore academic connections, and save a local shortlist using OpenAlex data.",
       "applicationCategory": "EducationalApplication",
       "operatingSystem": "Any",
@@ -50,19 +50,27 @@
 
 <body data-view="discover">
   <header class="app-navigation">
-    <a href="/discover" data-nav="discover" class="app-wordmark">Coauthor Distance</a>
-    <nav aria-label="Main navigation"><a href="/discover" data-nav="discover">Discover</a><a href="/connections" data-nav="connections">Connections</a><a href="/saved" data-nav="saved">Saved</a></nav>
+    <a href="/" class="app-wordmark">
+      <svg class="brand-mark" viewBox="0 0 42 42" aria-hidden="true"><path d="M9 27 20 13l13 8M9 27l18 6m-7-20 7 20"/><circle cx="9" cy="27" r="4"/><circle cx="20" cy="13" r="4"/><circle cx="33" cy="21" r="4"/><circle cx="27" cy="33" r="4"/></svg>
+      <span>Coauthor Distance</span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="/discover" data-nav="discover"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>Discover</a>
+      <a href="/connections" data-nav="connections"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 7 12 3M6 7l4 12m8-9-8 9"/><circle cx="6" cy="7" r="3"/><circle cx="18" cy="10" r="3"/><circle cx="10" cy="19" r="2"/></svg>Connections</a>
+      <a href="/saved" data-nav="saved"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>Saved</a>
+    </nav>
     <a class="app-about" href="/guide/">About</a>
   </header>
   <p id="app-notice" role="status"></p>
   <div id="app-share-fallback" hidden><label for="app-share-link">Copy this link</label><input id="app-share-link" readonly><button type="button" id="app-share-close">Close</button></div>
   <main id="app-main">
     <section id="discover-view" class="content-view" aria-labelledby="discover-heading">
-      <h1 id="discover-heading" tabindex="-1">Find your research people.</h1>
+      <h1 id="discover-heading" tabindex="-1">Discover connections<br class="heading-break"> at your university.</h1>
+      <div class="discovery-search">
       <div class="discovery-layout">
         <div class="discovery-inputs">
           <form id="reference-form">
-            <label for="reference-query">What interests you?</label>
+            <label for="reference-query" class="search-section-label"><span class="step-number" aria-hidden="true">1</span>What interests you?</label>
             <select id="reference-kind" aria-label="Reference type"><option value="topics">Research topic</option><option value="works">Paper</option><option value="authors">Researcher</option></select>
             <div class="input-action"><input id="reference-query" type="search" minlength="2" maxlength="300" placeholder="Search a topic, e.g. robotics" required><button type="submit">Find</button></div>
           </form>
@@ -71,13 +79,14 @@
           <button id="use-graph-references" type="button" class="text-button">Use researchers from my graph</button>
         </div>
         <div class="university-input">
-          <label for="university-query">University</label>
+          <label for="university-query" class="search-section-label"><span class="step-number" aria-hidden="true">2</span>University</label>
           <form id="university-form" class="input-action"><input id="university-query" type="search" placeholder="Choose your university" minlength="2" maxlength="300" required><button type="submit">Find</button></form>
           <div id="university-selection" hidden><strong id="university-name"></strong><button id="university-change" type="button" class="text-button">Change</button></div>
           <ul id="university-results" class="lookup-results" aria-live="polite"></ul>
         </div>
       </div>
       <div class="discovery-controls"><button id="discovery-submit" type="button" class="primary-button">Find researchers</button><button id="discovery-cancel" type="button" hidden>Stop search</button><button id="discovery-share" class="text-button" type="button" hidden>Share this search</button></div>
+      </div>
       <section id="discovery-output" aria-label="Researcher results"><p id="discovery-status" role="status"></p><div id="discovery-results"></div></section>
     </section>
     <section id="saved-view" class="content-view" aria-labelledby="saved-heading" hidden>
@@ -257,8 +266,19 @@
     <div id="cy"></div>
   </div>
 
+    <div id="view-switcher">
+      <button id="view-graph" type="button" class="active" aria-pressed="true">Map</button>
+      <button id="view-menu" type="button" aria-pressed="false">Search &amp; tools</button>
+    </div>
     </section>
   </main>
+  <footer class="app-footer">
+    <p>© 2026 Coauthor Distance</p>
+    <nav aria-label="Footer">
+      <a href="/guide/">About</a>
+      <a href="https://github.com/riptideiv/coauthor-distance" target="_blank" rel="noopener">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </footer>
 
   <div id="search-modal" class="hidden">
     <div id="search-backdrop"></div>
@@ -272,20 +292,15 @@
     </div>
   </div>
 
-  <div id="view-switcher">
-    <button id="view-graph" type="button" class="active" aria-pressed="true">Map</button>
-    <button id="view-menu" type="button" aria-pressed="false">Search &amp; tools</button>
-  </div>
-
   <script defer src="/graph_links.js?v=20261029-expand-3e"></script>
   <script defer src="/research_export.js?v=20261029-expand-3e"></script>
   <script defer src="/usage_analytics.js?v=20260926-1"></script>
   <script defer src="/discovery_state.js?v=20261029-expand-3e"></script>
   <script defer src="/discovery_links.js?v=20261029-expand-3e"></script>
   <script defer src="/saved_store.js?v=20261029-expand-3e"></script>
-  <script defer src="/app_shell.js?v=20261029-expand-3e"></script>
+  <script defer src="/app_shell.js?v=20261101-bookmarks-1"></script>
   <script defer src="/discovery.js?v=20261029-expand-3e"></script>
-  <script defer src="/saved.js?v=20261029-expand-3e"></script>
+  <script defer src="/saved.js?v=20261101-bookmarks-1"></script>
   <script defer src="/app.js?v=20261029-expand-3e"></script>
 </body>
 

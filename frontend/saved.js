@@ -5,9 +5,13 @@
   let storage; try { storage = localStorage; } catch { storage = { getItem() { throw new Error('Unavailable'); } }; }
   const store = window.SavedStore.create(storage);
   const entities = new Map();
+  // Keep full records available for an accidental unsave, including notes and context.
+  const unsaved = new Map();
+  const bookmark = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>';
   const $ = id => document.getElementById(id);
   let renderedState = '';
-  let filter = 'all', removed = null, pendingImport = null, importGeneration = 0;
+  let listNeedsRefresh = false;
+  let filter = 'all', pendingImport = null, importGeneration = 0;
   $('saved-content').innerHTML = `<p class="saved-privacy">Saved in this browser. Export includes your notes.</p>
     <div class="saved-tools"><label>Show <select id="saved-filter"><option value="all">All research</option><option value="researcher">Researchers</option><option value="paper">Papers</option></select></label>
     <button type="button" id="saved-export">Export JSON</button><button type="button" id="saved-import">Import JSON</button><input type="file" id="saved-file" accept="application/json,.json" hidden></div>
@@ -27,12 +31,23 @@
       const id = slot.dataset.saveAuthor || slot.dataset.savePaper;
       if (!entities.has(id)) return;
       let button = slot.querySelector('button');
-      if (!button) { button = document.createElement('button'); button.type = 'button'; button.className = 'save-research'; slot.append(button); }
-      button.textContent = store.has(id) ? 'Saved — view' : 'Save';
-      button.setAttribute('aria-label', (store.has(id) ? 'View saved ' : 'Save ') + entities.get(id).display_name);
+      if (!button) { button = document.createElement('button'); button.type = 'button'; button.className = 'save-research'; button.innerHTML = bookmark; slot.append(button); }
+      const saved = store.has(id);
+      button.setAttribute('aria-label', 'Save ' + entities.get(id).display_name);
+      button.setAttribute('aria-pressed', String(saved));
+      button.title = saved ? 'Remove from saved' : 'Save';
+      const row = slot.closest('.saved-item');
+      if (row) row.querySelector('.note-status').textContent = saved ? '' : 'Not saved';
       button.onclick = () => {
-        if (store.has(id)) { app.navigate('/saved'); return; }
-        try { store.add(entities.get(id)); updateControls(); warnings(); app.notice(store.warning() || 'Saved to your shortlist.'); }
+        try {
+          if (store.has(id)) unsaved.set(id, store.remove(id));
+          else { store.add(unsaved.get(id) || entities.get(id)); unsaved.delete(id); }
+          // Update markers immediately; rebuild the shortlist only on navigation,
+          // filtering, or import, so an unsaved card stays available to restore.
+          listNeedsRefresh = true;
+          updateControls(); warnings();
+          if (store.warning()) app.notice(store.warning());
+        }
         catch (error) { app.notice(error.message); }
       };
     });
@@ -40,33 +55,40 @@
   function render() {
     const state = filter + store.export();
     warnings();
-    if (state === renderedState) return;
+    if (state === renderedState && !listNeedsRefresh) return;
     renderedState = state;
+    listNeedsRefresh = false;
     const list = $('saved-list'); list.replaceChildren();
     const items = store.list().filter(x => filter === 'all' || x.type === filter).reverse();
     for (const item of items) {
+      register(item, item.context);
       const row = document.createElement('article'); row.className = 'saved-item';
       const title = item.type === 'researcher'
         ? `<a href="/researchers/${esc(item.id)}" data-researcher="${esc(item.id)}">${esc(item.display_name)}</a>`
         : `<a href="https://openalex.org/${esc(item.id)}" target="_blank" rel="noopener">${esc(item.display_name)} ↗</a>`;
-      row.innerHTML = `<div class="result-heading"><h3>${title}</h3><button type="button" class="remove-saved" aria-label="Remove ${esc(item.display_name)}">Remove</button></div>
+      row.innerHTML = `<div class="result-heading"><h3>${title}</h3><span data-save-${item.type === 'researcher' ? 'author' : 'paper'}="${esc(item.id)}"></span></div>
         <label for="note-${esc(item.id)}">Note</label><textarea id="note-${esc(item.id)}" rows="2" maxlength="6000">${esc(item.note)}</textarea><span class="note-status" role="status"></span>
         ${item.context ? '<button type="button" class="reopen-search text-button">Reopen discovery</button>' : ''}`;
       row.querySelector('textarea').oninput = event => {
-        try { store.note(item.id, event.target.value); renderedState = filter + store.export(); row.querySelector('.note-status').textContent = store.warning() ? 'Kept for this visit.' : 'Saved'; warnings(); }
+        try {
+          if (store.has(item.id)) {
+            store.note(item.id, event.target.value);
+            renderedState = filter + store.export();
+            row.querySelector('.note-status').textContent = store.warning() ? 'Kept for this visit.' : 'Saved';
+          } else {
+            // An unchecked card is a local draft until its bookmark is enabled again.
+            unsaved.set(item.id, { ...unsaved.get(item.id), note: event.target.value });
+            row.querySelector('.note-status').textContent = 'Not saved';
+          }
+          warnings();
+        }
         catch (error) { row.querySelector('.note-status').textContent = error.message; }
-      };
-      row.querySelector('.remove-saved').onclick = () => {
-        removed = store.remove(item.id); render(); updateControls();
-        $('saved-status').textContent = `Removed ${item.display_name}. `;
-        const undo = document.createElement('button'); undo.type = 'button'; undo.textContent = 'Undo';
-        undo.onclick = () => { try { store.add(removed); removed = null; $('saved-status').replaceChildren(); render(); updateControls(); } catch (error) { $('saved-status').textContent = error.message; } };
-        $('saved-status').append(undo); undo.focus();
       };
       if (item.context) row.querySelector('.reopen-search').onclick = () => app.navigate(window.DiscoveryLinks.encode(item.context));
       list.append(row);
     }
     if (!items.length) list.innerHTML = `<p class="saved-empty">${store.list().length ? 'No saved ' + (filter === 'paper' ? 'papers' : 'researchers') + '.' : 'Your shortlist is empty.'}</p><a href="/discover" data-nav="discover">Find researchers</a>`;
+    updateControls();
   }
   $('saved-filter').onchange = event => { filter = event.target.value; render(); };
   $('saved-export').onclick = () => download(store.export(), 'coauthor-distance-saved.json');
